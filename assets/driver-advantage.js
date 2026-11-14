@@ -3,12 +3,12 @@
 (function () {
   "use strict";
   var DEFAULTS = {
-    programmeStatus: "concept", pilotScope: "",
-    tripProtection: { status: "concept" },
-    carCare: { status: "concept", accrualPerTrip: 150, eligibilityTrips: 200, eligibilityDays: 90, quarterlyCap: 45000 },
-    rewardDays: { status: "concept", commissionRate: 0.2, eligibleTrips: 4, maximumWaiver: 16000, exampleFare: 20000 }
+    programmeStatus: "confirmed", pilotScope: "",
+    tripProtection: { status: "confirmed" },
+    carCare: { status: "confirmed", accrualPerTrip: 150, eligibilityTrips: 200, eligibilityDays: 90, quarterlyCap: 45000 },
+    rewardDays: { status: "confirmed", commissionRate: 0.2, eligibleTrips: 4, maximumWaiver: 16000, exampleFare: 20000 }
   };
-  var VALID = ["concept", "pilot", "active", "paused"];
+  var VALID = ["confirmed", "pilot", "active", "paused"];
   var raw = window.DRIVER_ADVANTAGE || {};
   function merge(a, b) { var o = {}, k; for (k in a) o[k] = a[k]; for (k in (b || {})) if (b[k] !== undefined && b[k] !== null) o[k] = b[k]; return o; }
   var cfg = merge(DEFAULTS, raw);
@@ -40,16 +40,16 @@
   // A benefit cannot present as pilot/active without the details that make that true.
   function effectiveStatus(key) {
     var s = key === "programme" ? cfg.programmeStatus : (cfg[key] || {}).status;
-    if (VALID.indexOf(s) === -1) return "concept";
-    if (s === "pilot" && !String(cfg.pilotScope || "").trim()) return "concept";
+    if (VALID.indexOf(s) === -1) return "confirmed";
+    if (s === "pilot" && !String(cfg.pilotScope || "").trim()) return "confirmed";
     if (key === "tripProtection" && (s === "pilot" || s === "active")) {
       var t = cfg.tripProtection, need = ["insurerName", "policyId", "coverageStart", "coverageEnd", "claimsContact", "policyUrl"];
-      for (var i = 0; i < need.length; i++) if (!String(t[need[i]] || "").trim()) return "concept";
+      for (var i = 0; i < need.length; i++) if (!String(t[need[i]] || "").trim()) return "confirmed";
     }
     if (key === "programme" && s === "active") {
       // the programme is only "active" if at least one benefit genuinely is
       var any = ["tripProtection", "carCare", "rewardDays"].some(function (k) { return effectiveStatus(k) === "active"; });
-      if (!any) return "concept";
+      if (!any) return "confirmed";
     }
     return s;
   }
@@ -70,8 +70,8 @@
   // ── DOM ───────────────────────────────────────────────────────────────────
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
-  var CHIP = { concept: "Programme preview", pilot: "Pilot", active: "Available now", paused: "Paused" };
-  var BENEFIT_CHIP = { concept: "Proposed", pilot: "Pilot", active: "Live", paused: "Paused" };
+  var CHIP = { confirmed: "Coming soon", pilot: "Pilot", active: "Available now", paused: "Paused" };
+  var BENEFIT_CHIP = { confirmed: "Coming soon", pilot: "Pilot", active: "Live", paused: "Paused" };
 
   function init() {
     var programme = effectiveStatus("programme");
@@ -87,9 +87,9 @@
     if (banner) {
       var scope = String(cfg.pilotScope || "").trim();
       var text = {
-        concept: ["Programme preview.", "Driver Advantage is a proposed programme. These benefits are not available yet, and every figure on this page is an illustration, not an offer."],
+        confirmed: ["Coming soon.", "Driver Advantage is confirmed and on its way. Benefits are not open to drivers yet, and every figure on this page is an illustration until final terms are published."],
         pilot: ["Pilot.", "Driver Advantage is being piloted with " + scope + ". Benefits are limited to pilot participants and are not available to all drivers."],
-        active: ["Available now.", "Benefits marked Live are open to eligible drivers under the published programme terms. Others remain proposals."],
+        active: ["Available now.", "Benefits marked Live are open to eligible drivers under the published programme terms. Others are coming soon."],
         paused: ["Paused.", "Driver Advantage is paused. No new enrolments are being taken, and this page will be updated when that changes."]
       }[programme];
       banner.setAttribute("data-status", programme);
@@ -184,9 +184,9 @@
       ["Medical expense limit", t.medicalExpenseLimit], ["Disability and death benefit limit", t.disabilityDeathLimit], ["Income interruption", t.incomeInterruptionTerms],
       ["Exclusions", t.exclusions], ["Where cover applies", t.geography], ["Claims contact", t.claimsContact]];
     var body = $("[data-da-disclosure-body]", el);
-    if (s === "concept" || s === "paused") {
+    if (s === "confirmed" || s === "paused") {
       body.innerHTML = '<p class="da-disclosure__preview">' + (s === "paused" ? "Trip Protection is paused. Policy details will be shown here if it resumes."
-        : "Insurance partner and final coverage terms will be published before programme activation.") + "</p>";
+        : "Insurance partner and final coverage terms will be published before launch.") + "</p>";
       return;
     }
     var esc = function (v) { return String(v).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); };
