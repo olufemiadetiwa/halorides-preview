@@ -180,6 +180,7 @@
   function ref(prefix) { return prefix + "-" + Math.random().toString(36).slice(2, 8).toUpperCase(); }
 
   $$("form.form").forEach(function (form) {
+    if (form.hasAttribute("data-custom")) return; // handled by its own script (e.g. partners.js)
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       var submit = $('button[type="submit"]', form);
