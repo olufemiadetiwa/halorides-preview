@@ -130,6 +130,26 @@
     syncFx();
   }
 
+  // Conversion analytics. Events go to window.dataLayer and a "halo:track" DOM event; nothing is sent anywhere
+  // from this file and no personal data is included. Driver Advantage and Partners links carry their own
+  // data-da-cta / data-pt-cta tracking, so they are skipped here and never counted twice.
+  function siteTrack(name, props) {
+    var payload = { event: name, page: location.pathname.replace(/^.*\/en(?=\/|$)/, "/halorides-preview/en") };
+    for (var k in props) payload[k] = props[k];
+    (window.dataLayer = window.dataLayer || []).push(payload);
+    try { document.dispatchEvent(new CustomEvent("halo:track", { detail: payload })); } catch (e) {}
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a || a.hasAttribute("data-da-cta") || a.hasAttribute("data-pt-cta")) return;
+    var href = a.getAttribute("href");
+    var place = a.closest("footer") ? "footer" : a.closest(".sticky-cta") ? "sticky" : a.closest(".header, header") ? "header" : a.closest(".hero2, .page-hero") ? "hero" : "body";
+    var store = /apps\.apple\.com/.test(href) ? "app_store" : /play\.google\.com/.test(href) ? "google_play" : "";
+    if (store) siteTrack("app_download_click", { store: store, app: /driver/.test(href) ? "driver" : "rider", placement: place });
+    else if (/\/en\/download\/?$/.test(href)) siteTrack("download_cta_click", { placement: place });
+    else if (/\/en\/(drive|signup)(\/|#|\?|$)/.test(href)) siteTrack("driver_signup_click", { placement: place });
+  });
+
   // Fare breakdown disclosure: opens once when scrolled into view, then user-controlled
   var fareBtn = $(".fare-toggle"), fareLines = $("#fare-lines");
   if (fareBtn && fareLines) {
@@ -137,7 +157,10 @@
       fareLines.dataset.open = String(open);
       fareBtn.setAttribute("aria-expanded", String(open));
     };
-    fareBtn.addEventListener("click", function () { setFare(fareLines.dataset.open !== "true"); });
+    fareBtn.addEventListener("click", function () {
+      var open = fareLines.dataset.open !== "true"; setFare(open);
+      if (open) siteTrack("fare_breakdown_open", {});
+    });
     if ("IntersectionObserver" in window) {
       var fio = new IntersectionObserver(function (entries) {
         if (entries[0].isIntersecting) { setTimeout(function () { setFare(true); }, 500); fio.disconnect(); }

@@ -87,7 +87,7 @@
     if (banner) {
       var scope = String(cfg.pilotScope || "").trim();
       var text = {
-        confirmed: ["Coming soon.", "Driver Advantage is confirmed and on its way. Benefits are not open to drivers yet, and every figure on this page is an illustration until final terms are published."],
+        confirmed: ["Programme preview.", "Driver Advantage is confirmed and coming soon. Figures shown are illustrative and subject to final commercial approval, and benefits are not open to drivers yet."],
         pilot: ["Pilot.", "Driver Advantage is being piloted with " + scope + ". Benefits are limited to pilot participants and are not available to all drivers."],
         active: ["Available now.", "Benefits marked Live are open to eligible drivers under the published programme terms. Others are coming soon."],
         paused: ["Paused.", "Driver Advantage is paused. No new enrolments are being taken, and this page will be updated when that changes."]
@@ -131,7 +131,7 @@
     var root = $("[data-da-carcare]"); if (!root) return;
     var input = $("input[type=range]", root), cc = cfg.carCare;
     var maxTrips = Number(input.max);
-    var out = { trips: $("[data-out=trips]", root), amount: $("[data-out=amount]", root), state: $("[data-out=state]", root), hint: $("[data-out=hint]", root),
+    var out = { trips: $("[data-out=trips]", root), amount: $("[data-out=amount]", root), state: $("[data-out=state]", root), hint: $("[data-out=hint]", root), usable: $("[data-out=usable]", root),
                 fill: $(".da-meter__fill", root), meter: $(".da-meter", root) };
     $(".da-meter__mark--threshold", root).style.left = (cc.eligibilityTrips / maxTrips * 100) + "%";
     $(".da-meter__mark--cap", root).style.left = (Math.min(carCare(1e9).capTrips, maxTrips) / maxTrips * 100) + "%";
@@ -140,6 +140,7 @@
       var r = carCare(input.value);
       out.trips.textContent = r.trips.toLocaleString("en-NG") + " trips";
       out.amount.textContent = naira(r.accrued);
+      if (out.usable) out.usable.textContent = naira(r.state === "below" ? 0 : r.accrued);
       out.state.textContent = LABEL[r.state]; out.state.setAttribute("data-state", r.state);
       out.meter.setAttribute("data-state", r.state);
       out.fill.style.width = (r.trips / maxTrips * 100) + "%";
@@ -147,7 +148,7 @@
         ? r.tripsToThreshold.toLocaleString("en-NG") + " more qualifying trips to reach the threshold. Until then the credit accrues but cannot be used."
         : r.state === "max" ? "The quarterly maximum is reached. Further trips in this period would not add more credit."
         : "Past the threshold. In this model the credit could go towards approved maintenance at a participating garage.";
-      input.setAttribute("aria-valuetext", r.trips + " trips, " + naira(r.accrued) + ", " + LABEL[r.state]);
+      input.setAttribute("aria-valuetext", r.trips + " trips, " + naira(r.accrued) + " accrued, " + naira(r.state === "below" ? 0 : r.accrued) + " usable, " + LABEL[r.state]);
       fillRange(input);
     }
     input.addEventListener("input", function () { render(); track("car_care_calculator_interaction", {}, true); });

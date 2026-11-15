@@ -58,6 +58,42 @@
       if (select.value) track("partner_category_select", { category: select.value, via: "form" });
     });
 
+    // ── category panels: one open at a time ─────────────────────────────────
+    var tabs = $$("[data-pt-tab]"), wide = window.matchMedia("(min-width: 961px)");
+    var panelOf = function (b) { return document.getElementById(b.getAttribute("aria-controls")); };
+    function openPanel(key, via) {
+      var found = false;
+      tabs.forEach(function (b) {
+        var on = b.getAttribute("data-pt-tab") === key;
+        b.setAttribute("aria-expanded", String(on)); panelOf(b).hidden = !on;
+        if (on) found = true;
+      });
+      if (found && via) track("partner_category_view", { category: key, via: via });
+      return found;
+    }
+    if (tabs.length) {
+      var fromHash = /^#p-([a-z]+)$/.exec(location.hash);
+      if (!(fromHash && openPanel(fromHash[1], "url"))) openPanel(tabs[0].getAttribute("data-pt-tab"));
+      tabs.forEach(function (b) {
+        b.addEventListener("click", function () {
+          var key = b.getAttribute("data-pt-tab");
+          // on phones the open category can be folded away again; on wide screens one always stays open
+          if (b.getAttribute("aria-expanded") === "true") { if (!wide.matches) openPanel(""); return; }
+          openPanel(key, "tab");
+        });
+      });
+      // links to a category (the ecosystem diagram) open its panel and move to it
+      document.addEventListener("click", function (e) {
+        var a = e.target.closest && e.target.closest('a[href^="#p-"]');
+        if (!a) return;
+        var key = a.getAttribute("href").slice(3), b = document.getElementById("pt-tab-" + key);
+        if (!b || !openPanel(key, "link")) return;
+        e.preventDefault();
+        b.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+        b.focus({ preventScroll: true });
+      });
+    }
+
     // Category CTAs and every tracked link
     document.addEventListener("click", function (e) {
       var a = e.target.closest && e.target.closest("[data-pt-cta]");
@@ -125,6 +161,7 @@
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       if ($('[name="website"]', form).value) return; // honeypot: bots fill it, people never see it
+      if (form.getAttribute("aria-busy") === "true") return; // already sending: never submit twice
       var bad = required().filter(function (el) { return !check(el); });
       if (bad.length) {
         summary.hidden = false;
